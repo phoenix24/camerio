@@ -1,8 +1,10 @@
 package org.fictious.camerio;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Date;
 import java.util.List;
 
 import android.app.Activity;
@@ -11,25 +13,27 @@ import android.hardware.Camera.PictureCallback;
 import android.hardware.Camera.ShutterCallback;
 import android.hardware.Camera.Size;
 import android.os.Bundle;
+import android.os.Environment;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 
-public class Preview extends Activity implements SurfaceHolder.Callback, View.OnClickListener {
+public class Preview extends Activity implements SurfaceHolder.Callback,
+		View.OnClickListener {
 
 	private Camera camera;
-	
+
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
-		
+
 		SurfaceView surface = (SurfaceView) findViewById(R.id.camera_surface);
 		SurfaceHolder holder = surface.getHolder();
-		
+
 		holder.addCallback(this);
 		holder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-		
+
 		surface.setClickable(true);
 		surface.setOnClickListener(this);
 	}
@@ -107,24 +111,37 @@ public class Preview extends Activity implements SurfaceHolder.Callback, View.On
 		// TODO Auto-generated method stub
 		camera.takePicture(shutter, raw, jpeg);
 	}
-	
+
 	ShutterCallback shutter = new ShutterCallback() {
 		public void onShutter() {
-			//TODO: do something here.
+			// TODO: do something here.
 		}
 	};
-	
+
 	PictureCallback raw = new PictureCallback() {
 		public void onPictureTaken(byte[] data, Camera camera) {
-			
+
 		}
 	};
-	
+
 	PictureCallback jpeg = new PictureCallback() {
 		public void onPictureTaken(byte[] data, Camera camera) {
+			File CamRoot = new File(Environment.getExternalStorageDirectory(), "Camerio");
+			if (!CamRoot.exists() && !CamRoot.mkdir()) {
+				return;
+			}
+			
+			//generate the clicked picture name;
+			Date date = new Date();
+			String picturename = date.getTime() + ".jpg";
+			
+			//make a dummy file.
+			File picture = new File(CamRoot, picturename);
+			picture.delete();
+
 			FileOutputStream output = null;
 			try {
-				output = new FileOutputStream("/sdcard/test.jpg");
+				output = new FileOutputStream(picture);
 				output.write(data);
 				output.close();
 				camera.startPreview();
