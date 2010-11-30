@@ -1,0 +1,7 @@
+h3. Our Cool Camerio Android app.
+
+* roadmap
+*# get the camera up and initialized.
+*# refactor the code.
+*# start taking snapshots.
+*# make some filters for to apply on the images.
