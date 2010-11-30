@@ -1,25 +1,37 @@
 package org.fictious.camerio;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
 
-import android.content.Context;
+import android.app.Activity;
 import android.hardware.Camera;
+import android.hardware.Camera.PictureCallback;
+import android.hardware.Camera.ShutterCallback;
 import android.hardware.Camera.Size;
+import android.os.Bundle;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.View;
 
-public class Preview extends SurfaceView implements SurfaceHolder.Callback {
-	
-	private SurfaceHolder holder;
+public class Preview extends Activity implements SurfaceHolder.Callback, View.OnClickListener {
+
 	private Camera camera;
 	
-	Preview(Context context) {
-		super(context);
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
 		
-		holder = getHolder();
+		SurfaceView surface = (SurfaceView) findViewById(R.id.camera_surface);
+		SurfaceHolder holder = surface.getHolder();
+		
 		holder.addCallback(this);
 		holder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+		
+		surface.setClickable(true);
+		surface.setOnClickListener(this);
 	}
 
 	@Override
@@ -30,42 +42,44 @@ public class Preview extends SurfaceView implements SurfaceHolder.Callback {
 		List<Size> sizes = parameters.getSupportedPreviewSizes();
 		Size optsize = getoptimalsize(sizes, width, height);
 		parameters.setPreviewSize(optsize.width, optsize.height);
-		
+
 		camera.setParameters(parameters);
 		camera.startPreview();
 	}
 
 	private Size getoptimalsize(List<Size> sizes, int width, int height) {
-        final double ASPECT_TOLERANCE = 0.05;
-        double targetRatio = (double) width / height;
-        if (sizes == null) return null;
+		final double ASPECT_TOLERANCE = 0.05;
+		double targetRatio = (double) width / height;
+		if (sizes == null)
+			return null;
 
-        Size optimalSize = null;
-        double minDiff = Double.MAX_VALUE;
+		Size optimalSize = null;
+		double minDiff = Double.MAX_VALUE;
 
-        int targetHeight = height;
+		int targetHeight = height;
 
-        // Try to find an size match aspect ratio and size
-        for (Size size : sizes) {
-            double ratio = (double) size.width / size.height;
-            if (Math.abs(ratio - targetRatio) > ASPECT_TOLERANCE) continue;
-            if (Math.abs(size.height - targetHeight) < minDiff) {
-                optimalSize = size;
-                minDiff = Math.abs(size.height - targetHeight);
-            }
-        }
+		// Try to find an size match aspect ratio and size
+		for (Size size : sizes) {
+			double ratio = (double) size.width / size.height;
+			if (Math.abs(ratio - targetRatio) > ASPECT_TOLERANCE)
+				continue;
+			if (Math.abs(size.height - targetHeight) < minDiff) {
+				optimalSize = size;
+				minDiff = Math.abs(size.height - targetHeight);
+			}
+		}
 
-        // Cannot find the one match the aspect ratio, ignore the requirement
-        if (optimalSize == null) {
-            minDiff = Double.MAX_VALUE;
-            for (Size size : sizes) {
-                if (Math.abs(size.height - targetHeight) < minDiff) {
-                    optimalSize = size;
-                    minDiff = Math.abs(size.height - targetHeight);
-                }
-            }
-        }
-        return optimalSize;
+		// Cannot find the one match the aspect ratio, ignore the requirement
+		if (optimalSize == null) {
+			minDiff = Double.MAX_VALUE;
+			for (Size size : sizes) {
+				if (Math.abs(size.height - targetHeight) < minDiff) {
+					optimalSize = size;
+					minDiff = Math.abs(size.height - targetHeight);
+				}
+			}
+		}
+		return optimalSize;
 	}
 
 	@Override
@@ -87,4 +101,40 @@ public class Preview extends SurfaceView implements SurfaceHolder.Callback {
 		camera.release();
 		camera = null;
 	}
+
+	@Override
+	public void onClick(View v) {
+		// TODO Auto-generated method stub
+		camera.takePicture(shutter, raw, jpeg);
+	}
+	
+	ShutterCallback shutter = new ShutterCallback() {
+		public void onShutter() {
+			//TODO: do something here.
+		}
+	};
+	
+	PictureCallback raw = new PictureCallback() {
+		public void onPictureTaken(byte[] data, Camera camera) {
+			
+		}
+	};
+	
+	PictureCallback jpeg = new PictureCallback() {
+		public void onPictureTaken(byte[] data, Camera camera) {
+			FileOutputStream output = null;
+			try {
+				output = new FileOutputStream("/sdcard/test.jpg");
+				output.write(data);
+				output.close();
+				camera.startPreview();
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	};
 }
