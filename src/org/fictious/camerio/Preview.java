@@ -8,12 +8,18 @@ import java.util.Date;
 import java.util.List;
 
 import android.app.Activity;
+import android.content.ContentResolver;
+import android.content.ContentValues;
+import android.content.Intent;
 import android.hardware.Camera;
 import android.hardware.Camera.PictureCallback;
 import android.hardware.Camera.ShutterCallback;
 import android.hardware.Camera.Size;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.provider.MediaStore;
+import android.provider.MediaStore.Images;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
@@ -126,31 +132,53 @@ public class Preview extends Activity implements SurfaceHolder.Callback,
 
 	PictureCallback jpeg = new PictureCallback() {
 		public void onPictureTaken(byte[] data, Camera camera) {
-			File CamRoot = new File(Environment.getExternalStorageDirectory(), "Camerio");
+			// TODO: remove string hardcodes.
+			File CamRoot = new File(Environment.getExternalStorageDirectory(),
+					"Camerio");
 			if (!CamRoot.exists() && !CamRoot.mkdir()) {
 				return;
 			}
-			
-			//generate the clicked picture name;
+
+			// generate the clicked picture name;
 			Date date = new Date();
-			String picturename = date.getTime() + ".jpg";
-			
-			//make a dummy file.
+			// TODO: remove string hardcodes.
+			final String picturename = date.getTime() + ".jpg";
+
+			// make a dummy file.
 			File picture = new File(CamRoot, picturename);
 			picture.delete();
 
+			// lets write down the clicked image.
 			FileOutputStream output = null;
 			try {
 				output = new FileOutputStream(picture);
 				output.write(data);
 				output.close();
-				camera.startPreview();
+
+				//TODO: code needs to be refactored.
+				ContentValues content = new ContentValues(4);
+				content.put(MediaStore.Images.Media.TITLE, picturename);
+				content.put(MediaStore.Images.Media.DATE_ADDED,
+						System.currentTimeMillis() / 1000);
+				content.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+
+				content.put(MediaStore.Images.Media.DATA, picture.toString());
+
+				ContentResolver resolver = getContentResolver();
+				Uri uri = resolver.insert(
+						MediaStore.Images.Media.EXTERNAL_CONTENT_URI, content);
+
+				sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,
+						uri));
+
 			} catch (FileNotFoundException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
+			} finally {
+				camera.startPreview();
 			}
 		}
 	};
